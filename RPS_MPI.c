@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <time.h>
+#include <string.h>
 
 #include "RPS_MPI.h"
 
@@ -11,6 +12,10 @@ void exchange_borders();
 void iterate_CA();
 void gather_petri();
 void create_types();
+// For debugging
+void print_petri(cell* petri);
+void print_petri_image(cell** petri_image);
+void print_border(cell* border);
 
 int rank;
 int size;
@@ -95,7 +100,15 @@ int main(int argc, char** argv){
 
   create_types();
 
+	iterate_CA();
 
+  	for (int i; i < ITERATIONS; i++) {
+	
+		exchange_borders();
+
+		iterate_CA();		
+			
+	}
   // A super basic example sending some data:
 
   // cell* my_test_cell = malloc(10*sizeof(cell));
@@ -151,24 +164,28 @@ void create_types(){
 
   MPI_Type_create_struct(nitems, blocklengths, offsets, types, &mpi_cell_t);
   MPI_Type_commit(&mpi_cell_t);
-  ////////////////////////////////
-  ////////////////////////////////
+  	////////////////////////////////
+  	////////////////////////////////
 
 
 
-  ////////////////////////////////
-  ////////////////////////////////
-  // A message for a local petri-dish
-  MPI_Type_contiguous(p_local_petri_x_dim * p_local_petri_y_dim,
-                      mpi_cell_t,
-                      &local_petri_t);
-  MPI_Type_commit(&local_petri_t);
-  ////////////////////////////////
-  ////////////////////////////////
+  	////////////////////////////////
+  	////////////////////////////////
+  	// A message for a local petri-dish
+	MPI_Type_contiguous(p_local_petri_x_dim * p_local_petri_y_dim, mpi_cell_t, 	&local_petri_t);
+	MPI_Type_commit(&local_petri_t);
+	
+
+	MPI_Type_contiguous(p_local_petri_y_dim, mpi_cell_t, &border_row_t);
+  	MPI_Type_commit(&border_row_t);
+  	////////////////////////////////
+  	////////////////////////////////
 
 
   	//TODO: Create MPI types for border exchange
 
+	MPI_Type_vector(p_local_petri_x_dim, 1, p_local_petri_x_dim, mpi_cell_t, &border_col_t);
+	MPI_Type_commit(&border_col_t);
 	
 }
 
@@ -197,8 +214,6 @@ void initialize(){
 
 	srand(rank);
 
-	if (rank == 0) {
-
 	memcpy(local_petri_B, local_petri_A, (p_local_petri_x_dim*p_local_petri_y_dim)*sizeof(cell)); 
 
 	cell** local_petri_A_image = malloc(p_local_petri_x_dim*sizeof(cell*));
@@ -213,13 +228,14 @@ void initialize(){
 
 	
 	// "Randomly" seeding the local dish.
-	for (int i = 0; i < p_local_petri_x_dim; i++) {
+	for (int i = 0; i < p_local_petri_x_dim*2; i++) {
 
-		int r = rand() % (p_local_petri_x_dim*p_local_petri_y_dim - 1);
+		int rx = rand() % (p_local_petri_x_dim - 3);
+		int ry = rand() % (p_local_petri_y_dim - 3);
 		int rt = rand() % 4;
 		
-		local_petri_A[r].color = rt;
-		local_petri_A[r].strength = 1;
+		local_petri_A_image[1+rx][1+ry].color = rt;
+		local_petri_A_image[1+rx][1+ry].strength = 1;
 
 	} 
 
@@ -243,67 +259,104 @@ void initialize(){
 
 	}	
 
+}
 
-/* 	if (p_my_y_dim == 0) {
-		for (int i = 0; i < p_local_petri_y_dim; i++) {
+void print_petri(cell* petri) {
 
-			local_petri_A[i*p_local_petri_x_dim].color = 0;
-			local_petri_A[i*p_local_petri_x_dim].strength = 0;	
-		}
-	} if (p_my_x_dim == 0) {
-		for (int i = 0; i < p_local_petri_x_dim; i++) {
-
-			local_petri_A[i].color = 0;
-			local_petri_A[i].strength = 0;		
-			
-		}
-	} if (p_my_y_dim == sqrt(size)-1) {
-		for (int i = 0; i < p_local_petri_y_dim; i++) {
-
-			local_petri_A[i*p_local_petri_y_dim + (p_local_petri_x_dim - 1)].color = 0;
-			local_petri_A[i*p_local_petri_y_dim + (p_local_petri_x_dim - 1)].strength = 0;	
-		}
-	} if (p_my_x_dim == sqrt(size)-1) {
-		for (int i = 0; i < p_local_petri_x_dim; i++) {
-
-			local_petri_A[(p_local_petri_y_dim - 1)*p_local_petri_x_dim + i].color = 0;
-			local_petri_A[(p_local_petri_y_dim - 1)*p_local_petri_x_dim + i].strength = 0;
-		}
-
-	}
-
-*/	for (int i = 0; i < p_local_petri_y_dim * p_local_petri_x_dim; i++) {
+	for (int i = 0; i < p_local_petri_y_dim * p_local_petri_x_dim; i++) {
 
 
 		if (i%(p_local_petri_y_dim) == 0) {
 			printf("%d: ", rank);
 		}
-		printf("(%d, %d)", local_petri_A[i].color, local_petri_A[i].strength);
+		printf("(%d, %d)", petri[i].color, petri[i].strength);
 
 		if (i%(p_local_petri_y_dim) == p_local_petri_y_dim-1) {
 			printf("\n");
 		}
 
 	}
+	printf("\n");
 
-
-
-
-
-//	printf("(%d, %d)\n", local_petri_B_image[3][1].color, local_petri_B_image[1][3].strength);
 }
 
 
-//	printf("My rank is %d; coords are %d %d\n", rank, p_my_y_dim, p_my_x_dim); // coords: y, x
-//  	printf("Rank %d: My neighbours are west %d, east: %d, north: %d, south: %d\n", rank, 	p_west, p_east, p_north, p_south); // To be removed
-  
+void print_border(cell* border) {
+
+	for (int i = 0; i < p_local_petri_y_dim; i++) {
+
+
+		if (i%(p_local_petri_y_dim) == 0) {
+			printf("%d: ", rank);
+		}
+		printf("(%d, %d)", border[i].color, border[i].strength);
+
+		if (i%(p_local_petri_y_dim) == p_local_petri_y_dim-1) {
+			printf("\n");
+		}
+
+	}
+	
 }
 
 
 void exchange_borders(){
-  //TODO: Exchange borders inbetween each step
+  	//TODO: Exchange borders inbetween each step
+
+	// Exchange north if applicable
+	
+//	if (rank == 0 || rank == 4 || rank == 8 || rank == 12) {
+
+		if (p_north != -1) {
+
+			cell* n_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
+
+			MPI_Sendrecv(&local_petri_A[p_local_petri_x_dim], 1, border_row_t, p_north, 0, n_border_row, 1, border_row_t, p_north, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+			memcpy(&local_petri_A[0], n_border_row, p_local_petri_y_dim*sizeof(cell));
+
+			free(n_border_row);
+
+		} 
+		if (p_south != -1) {
+
+			cell* s_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
+
+			MPI_Sendrecv(&local_petri_A[(p_local_petri_x_dim - 2) * p_local_petri_x_dim], 1, border_row_t, p_south, 0, s_border_row, 1, border_row_t, p_south, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
+			memcpy(&local_petri_A[(p_local_petri_x_dim - 1) * p_local_petri_x_dim], s_border_row, p_local_petri_y_dim*sizeof(cell));
+
+			free(s_border_row);
+	
+		}
 
 	
+	// Exchange east/west if applicable
+	
+	if (p_east != -1) {
+		
+		cell* e_border_col = malloc((p_local_petri_x_dim)*sizeof(cell));
+		
+		MPI_Sendrecv(&local_petri_A[0], 1, border_col_t, p_east, 0, e_border_col, 1, border_col_t, p_east, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		print_border(e_border_col);
+
+		free(e_border_col);
+
+	}	
+
+	if (p_west != -1) {
+
+		cell* w_border_col = malloc((p_local_petri_x_dim)*sizeof(cell));
+
+		MPI_Sendrecv(&local_petri_A[p_local_petri_y_dim - 2], 1, border_col_t, p_west, 0, w_border_col, 1, border_col_t, p_west, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		free(w_border_col);
+	} 
+
+//	print_petri(local_petri_A);
+
 
 }
 
