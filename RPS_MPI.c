@@ -261,6 +261,71 @@ void initialize(){
 
 }
 
+void exchange_borders(){
+  	//TODO: Exchange borders inbetween each step
+
+	// Exchange north if applicable using the border_row_t MPI_type, using relative to dimension indexes. I also use a buffer for each row exchanged that is inserted into the petri at the appropriate position.
+
+	if (p_north != -1) {
+
+		cell* n_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
+
+		MPI_Sendrecv(&local_petri_A[p_local_petri_x_dim], 1, border_row_t, p_north, 0, n_border_row, 1, border_row_t, p_north, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		memcpy(&local_petri_A[0], n_border_row, p_local_petri_y_dim*sizeof(cell));
+
+		free(n_border_row);
+
+	} if (p_south != -1) {
+
+		cell* s_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
+
+		MPI_Sendrecv(&local_petri_A[(p_local_petri_x_dim - 2) * p_local_petri_x_dim], 1, border_row_t, p_south, 0, s_border_row, 1, border_row_t, p_south, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+
+		memcpy(&local_petri_A[(p_local_petri_x_dim - 1) * p_local_petri_x_dim], s_border_row, p_local_petri_y_dim*sizeof(cell));
+
+		free(s_border_row);
+
+	}
+
+	
+	// Exchange east/west if applicable using the border_col_t MPI_type, using relative to dimension indexes. Here I do not use a buffer, as the resulting vector spans the original length of the petri, so I rather just overwrite the appropriate values in the petri directly.
+
+	if (p_east != -1) {
+		
+		MPI_Sendrecv(&local_petri_A[p_local_petri_y_dim - 2], 1, border_col_t, p_east, 0, &local_petri_A[p_local_petri_y_dim-1], 1, border_col_t, p_east, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+	} if (p_west != -1) {
+
+		MPI_Sendrecv(&local_petri_A[1], 1, border_col_t, p_west, 0, local_petri_A, 1, border_col_t, p_west, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+	} 
+
+	// NB: The resulting exchange DOES also contain diagonal values at the eastern corners of the petri, as the exchange is propagated (1) from north to south, then from east to west using the transferred border values of (1) already in place. These values will not be used when iterating.
+
+	if (rank == 0 || rank == 1 || rank == 2) {
+
+		print_petri(local_petri_A);
+
+	}
+
+}
+
+void iterate_CA(){
+  //TODO: Iterate the cellular automata one step
+
+		
+
+}
+
+void gather_petri(){
+  //TODO: Gather the final petri for process rank 0
+}
+
+
+	// Debug functions below //
+
 void print_petri(cell* petri) {
 
 	for (int i = 0; i < p_local_petri_y_dim * p_local_petri_x_dim; i++) {
@@ -283,7 +348,7 @@ void print_petri(cell* petri) {
 
 void print_border(cell* border) {
 
-	for (int i = 0; i < p_local_petri_y_dim; i++) {
+	for (int i = 0; i < p_local_petri_y_dim*6; i++) {
 
 
 		if (i%(p_local_petri_y_dim) == 0) {
@@ -297,73 +362,4 @@ void print_border(cell* border) {
 
 	}
 	
-}
-
-
-void exchange_borders(){
-  	//TODO: Exchange borders inbetween each step
-
-	// Exchange north if applicable
-	
-//	if (rank == 0 || rank == 4 || rank == 8 || rank == 12) {
-
-		if (p_north != -1) {
-
-			cell* n_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
-
-			MPI_Sendrecv(&local_petri_A[p_local_petri_x_dim], 1, border_row_t, p_north, 0, n_border_row, 1, border_row_t, p_north, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-			memcpy(&local_petri_A[0], n_border_row, p_local_petri_y_dim*sizeof(cell));
-
-			free(n_border_row);
-
-		} 
-		if (p_south != -1) {
-
-			cell* s_border_row = malloc((p_local_petri_y_dim)*sizeof(cell));
-
-			MPI_Sendrecv(&local_petri_A[(p_local_petri_x_dim - 2) * p_local_petri_x_dim], 1, border_row_t, p_south, 0, s_border_row, 1, border_row_t, p_south, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-
-			memcpy(&local_petri_A[(p_local_petri_x_dim - 1) * p_local_petri_x_dim], s_border_row, p_local_petri_y_dim*sizeof(cell));
-
-			free(s_border_row);
-	
-		}
-
-	
-	// Exchange east/west if applicable
-	
-	if (p_east != -1) {
-		
-		cell* e_border_col = malloc((p_local_petri_x_dim)*sizeof(cell));
-		
-		MPI_Sendrecv(&local_petri_A[0], 1, border_col_t, p_east, 0, e_border_col, 1, border_col_t, p_east, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-		print_border(e_border_col);
-
-		free(e_border_col);
-
-	}	
-
-	if (p_west != -1) {
-
-		cell* w_border_col = malloc((p_local_petri_x_dim)*sizeof(cell));
-
-		MPI_Sendrecv(&local_petri_A[p_local_petri_y_dim - 2], 1, border_col_t, p_west, 0, w_border_col, 1, border_col_t, p_west, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-		free(w_border_col);
-	} 
-
-//	print_petri(local_petri_A);
-
-
-}
-
-void iterate_CA(){
-  //TODO: Iterate the cellular automata one step
-}
-
-void gather_petri(){
-  //TODO: Gather the final petri for process rank 0
 }

@@ -16,8 +16,8 @@
 #define PAPER   2
 #define SCISSOR 3
 
-#define IMG_X 16	// original 512
-#define IMG_Y 16	// original 512
+#define IMG_X 8	// original 512
+#define IMG_Y 8	// original 512
 
 // Each cell is updated based on neighbors of distance 1
 #define BORDER_SIZE 1
