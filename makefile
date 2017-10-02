@@ -2,7 +2,7 @@
 
 # by uncommenting this line the preprocessor will see #ifdef DEBUG as true
 # CFLAGS+= -DDEBUG
-util_objects = CA.o bitmap.o
+util_objects = bitmap.o
 serial_objects = RPS.o
 parallel_objects = RPS_MPI.o
 
