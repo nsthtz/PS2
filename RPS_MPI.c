@@ -191,17 +191,17 @@ void create_types(){
 
 
 void initialize(){
-  //TODO: assign the following to something more useful than 0
+	//TODO: assign the following to something more useful than 0
 	/* Each dimension is increased by 2 to let there be a blank border surrounding the actual petri cells for which to insert information retrieved from border exchange */
-  p_local_petri_x_dim = IMG_X / sqrt(size) + 2;
-  p_local_petri_y_dim = IMG_Y / sqrt(size) + 2;
+	p_local_petri_x_dim = IMG_X / sqrt(size) + 2;
+	p_local_petri_y_dim = IMG_Y / sqrt(size) + 2;
 
-  // TODO: When allocating these buffers, keep in mind that you might need to allocate a little more
-  // than just your piece of the petri.
-  local_petri_A = malloc((p_local_petri_x_dim * p_local_petri_y_dim)*sizeof(cell)); // "Might need a little more"
-  local_petri_B = malloc((p_local_petri_x_dim * p_local_petri_y_dim)*sizeof(cell)); // "Might need a little more"
+	// TODO: When allocating these buffers, keep in mind that you might need to allocate a little more
+	// than just your piece of the petri.
+	local_petri_A = malloc((p_local_petri_x_dim * p_local_petri_y_dim)*sizeof(cell)); // "Might need a little more"
+	local_petri_B = malloc((p_local_petri_x_dim * p_local_petri_y_dim)*sizeof(cell)); // "Might need a little more"
 
-  for (int i = 0; i < p_local_petri_x_dim*p_local_petri_y_dim; i++) {
+	for (int i = 0; i < p_local_petri_x_dim*p_local_petri_y_dim; i++) {
 
 		local_petri_A[i].strength = 0;
 		local_petri_A[i].color = 0;
@@ -259,9 +259,22 @@ void initialize(){
 
 	}	
 
+	if (rank == 0) {
+
+		printf("%d\n", &local_petri_A_image[2]);
+
+	}
+
+
 }
 
 void exchange_borders(){
+
+	if (rank == 0) {
+
+		printf("%d\n", &local_petri_A_image[2]);
+
+}
   	//TODO: Exchange borders inbetween each step
 
 	// Exchange north if applicable using the border_row_t MPI_type, using relative to dimension indexes. I also use a buffer for each row exchanged that is inserted into the petri at the appropriate position.
