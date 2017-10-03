@@ -48,6 +48,7 @@ void make_bmp(cell** image, int index){
 
   // used to be calloc with 1 as arg 2, thus no sizeof(??)
   unsigned char* buffer = malloc(IMG_X*IMG_Y*3);
+//	printf("%d, %d\n", IMG_X, IMG_Y);
   for(int i=0;i<IMG_X;i++) {
     for(int j=0;j<IMG_Y;j++) {
       int p=((IMG_Y-j-1)*IMG_X+i)*3;

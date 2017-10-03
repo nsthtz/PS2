@@ -286,32 +286,32 @@ void exchange_borders(cell* petri){
 
 	// Exchange north if applicable using the border_row_t MPI_type, using relative to dimension indexes. I also use a buffer for each row exchanged that is inserted into the petri at the appropriate position.
 
-//	if (p_north != -1) {
+	if (p_north != -1) {
 
 
 		MPI_Sendrecv(&petri[p_local_petri_x_dim], 1, border_row_t, p_north, 0, &petri[0], 1, border_row_t, p_north, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 		
-//	} if (p_south != -1) {
+	} if (p_south != -1) {
 
 
 		MPI_Sendrecv(&petri[(p_local_petri_x_dim - 2) * p_local_petri_x_dim], 1, border_row_t, p_south, 0, &petri[(p_local_petri_x_dim - 1) * p_local_petri_x_dim], 1, border_row_t, p_south, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
-//	}
+	}
 
 	
 	// Exchange east/west if applicable using the border_col_t MPI_type, using relative to dimension indexes. Here I do not use a buffer, as the resulting vector spans the original length of the petri, so I rather just overwrite the appropriate values in the petri directly.
 
-//	if (p_east != -1) {
+	if (p_east != -1) {
 		
 		MPI_Sendrecv(&petri[p_local_petri_y_dim - 2], 1, border_col_t, p_east, 0, &petri[p_local_petri_y_dim-1], 1, border_col_t, p_east, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
-//	} if (p_west != -1) {
+	} if (p_west != -1) {
 
 		MPI_Sendrecv(&petri[1], 1, border_col_t, p_west, 0, petri, 1, border_col_t, p_west, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-//	} 
+	} 
 
 	// NB: The resulting exchange DOES also contain diagonal values at the eastern corners of the petri, as the exchange is propagated (1) from north to south, then from east to west using the transferred border values of (1) already in place. These values will not be used when iterating.
 
